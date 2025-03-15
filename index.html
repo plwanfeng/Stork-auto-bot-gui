@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stork Oracle 自动验证机器人-by晚风</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar-brand {
+      font-weight: bold;
+    }
+    .container-fluid {
+      padding: 20px;
+    }
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background-color: #f8f9fa;
+      font-weight: bold;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .nav-tabs .nav-link.active {
+      font-weight: bold;
+      border-bottom: 3px solid #0d6efd;
+    }
+    .btn-primary {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+    }
+    .btn-danger {
+      background-color: #dc3545;
+      border-color: #dc3545;
+    }
+    #logConsole {
+      height: 300px;
+      overflow-y: auto;
+      background-color: #212529;
+      color: #f8f9fa;
+      font-family: monospace;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .log-entry {
+      margin: 2px 0;
+    }
+    .log-info {
+      color: #8dd9ff;
+    }
+    .log-warn {
+      color: #ffd166;
+    }
+    .log-error {
+      color: #ff6b6b;
+    }
+    .log-success {
+      color: #9cffb6;
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-running {
+      background-color: #28a745;
+    }
+    .status-stopped {
+      background-color: #dc3545;
+    }
+    .status-warning {
+      background-color: #ffc107;
+    }
+    #statsContainer {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      height: 100%;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Stork Oracle 自动验证机器人</a>
+      <div class="d-flex align-items-center">
+        <span class="text-white me-3">状态: </span>
+        <span class="status-indicator status-stopped" id="statusIndicator"></span>
+        <span class="text-white" id="statusText">已停止</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid mt-4">
+    <ul class="nav nav-tabs" id="mainTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">仪表盘</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts" type="button" role="tab" aria-controls="accounts" aria-selected="false">账户管理</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="proxies-tab" data-bs-toggle="tab" data-bs-target="#proxies" type="button" role="tab" aria-controls="proxies" aria-selected="false">代理设置</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">系统设置</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">日志</button>
+      </li>
+    </ul>
+    
+    <div class="tab-content mt-3" id="mainTabContent">
+      <!-- 仪表盘 -->
+      <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+        <div class="row">
+          <div class="col-md-12 mb-4">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>运行控制</span>
+              </div>
+              <div class="card-body">
+                <div class="d-flex gap-2">
+                  <button id="startBtn" class="btn btn-primary">启动验证</button>
+                  <button id="stopBtn" class="btn btn-danger" disabled>停止验证</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">验证统计</div>
+              <div class="card-body">
+                <div id="statsContainer" class="h-100">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">总验证次数</div>
+                        <div class="stat-value" id="totalValidations">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">成功验证</div>
+                        <div class="stat-value" id="successValidations">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">失败验证</div>
+                        <div class="stat-value" id="failedValidations">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">运行时间</div>
+                        <div class="stat-value" id="runningTime">00:00:00</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">用户信息</div>
+              <div class="card-body">
+                <div id="userInfoContainer" class="h-100">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">积分</div>
+                        <div class="stat-value" id="userPoints">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">等级</div>
+                        <div class="stat-value" id="userLevel">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">活跃天数</div>
+                        <div class="stat-value" id="activeDays">0</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="stat-card">
+                        <div class="stat-label">邀请人数</div>
+                        <div class="stat-value" id="invitedUsers">0</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-header">活跃账户状态</div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>账户</th>
+                        <th>状态</th>
+                        <th>验证次数</th>
+                        <th>成功率</th>
+                        <th>最后验证时间</th>
+                      </tr>
+                    </thead>
+                    <tbody id="accountsStatusTable">
+                      <tr>
+                        <td colspan="5" class="text-center">暂无账户运行</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 账户管理 -->
+      <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>账户列表</span>
+            <button class="btn btn-sm btn-primary" id="addAccountBtn">添加账户</button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>用户名/邮箱</th>
+                    <th>密码</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="accountsTable">
+                  <tr>
+                    <td colspan="3" class="text-center">暂无账户</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 添加/编辑账户模态框 -->
+        <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="accountModalLabel">添加账户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="accountForm">
+                  <input type="hidden" id="accountIndex" value="-1">
+                  <div class="mb-3">
+                    <label for="username" class="form-label">用户名/邮箱</label>
+                    <input type="text" class="form-control" id="username" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="password" class="form-label">密码</label>
+                    <input type="password" class="form-control" id="password" required>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveAccountBtn">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 代理设置 -->
+      <div class="tab-pane fade" id="proxies" role="tabpanel" aria-labelledby="proxies-tab">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>代理服务器设置</span>
+            <button class="btn btn-sm btn-primary" id="addProxyBtn">添加代理</button>
+          </div>
+          <div class="card-body">
+            <div class="mb-4">
+              <p class="text-muted">
+                每行一个代理，支持格式：<br>
+                - HTTP 代理：http://user:pass@host:port<br>
+                - SOCKS 代理：socks5://user:pass@host:port
+              </p>
+            </div>
+            <div class="mb-3">
+              <textarea class="form-control" id="proxyList" rows="10" placeholder="请输入代理服务器地址，每行一个"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary" id="saveProxiesBtn">保存代理设置</button>
+              <button class="btn btn-outline-secondary" id="testProxiesBtn">测试代理连接</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统设置 -->
+      <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+        <div class="card">
+          <div class="card-header">验证配置</div>
+          <div class="card-body">
+            <form id="settingsForm">
+              <div class="mb-3">
+                <label for="intervalSeconds" class="form-label">验证间隔（秒）</label>
+                <input type="number" class="form-control" id="intervalSeconds" min="5" value="30">
+                <div class="form-text">建议值：30秒，太短可能会被系统限制</div>
+              </div>
+              <div class="mb-3">
+                <label for="maxWorkers" class="form-label">最大线程数</label>
+                <input type="number" class="form-control" id="maxWorkers" min="1" max="20" value="1">
+                <div class="form-text">建议值：不超过账户数量，多账户时可适当增加</div>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="useProxies">
+                <label class="form-check-label" for="useProxies">
+                  启用代理
+                </label>
+              </div>
+              <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存设置</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 日志 -->
+      <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>运行日志</span>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary" id="clearLogsBtn">清除日志</button>
+              <button class="btn btn-sm btn-outline-primary" id="exportLogsBtn">导出日志</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div id="logConsole">
+              <div class="log-entry log-info">[系统] 欢迎使用 Stork Oracle 自动验证机器人</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html> 

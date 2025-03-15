@@ -1,0 +1,43 @@
+{
+  "type":"module",
+  "name": "stork-auto-bot",
+  "version": "1.0.0",
+  "description": "Automated validation bot for Stork Oracle network with GUI",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/airdropinsiders/Stork-Auto-Bot.git"
+  },
+  "keywords": [
+    "stork",
+    "oracle",
+    "validation",
+    "bot",
+    "automation"
+  ],
+  "author": "Airdrop Insiders",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/airdropinsiders/Stork-Auto-Bot/issues"
+  },
+  "homepage": "https://github.com/airdropinsiders/Stork-Auto-Bot#readme",
+  "dependencies": {
+    "amazon-cognito-identity-js": "^6.3.1",
+    "axios": "^1.6.2",
+    "electron": "^28.1.0",
+    "fs": "0.0.1-security",
+    "https-proxy-agent": "^7.0.2",
+    "path": "^0.12.7",
+    "socks-proxy-agent": "^8.0.1",
+    "@electron/remote": "^2.0.12",
+    "electron-store": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
